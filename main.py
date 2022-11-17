@@ -18,7 +18,21 @@ class The_Office_Bot:
 )
         print(self.reddit.read_only)
 
-run = The_Office_Bot()
+
+        self.subreddit = self.reddit.subreddit("BotsPlayHere")
+
+
+    def run(self):
+        for comment in self.subreddit.stream.comments():
+            print(comment)
+            if not comment.saved and "michael-bot" in comment.body:
+                print('i triggered')
+                comment.reply('im triggered')
+                comment.save()
+
+bot = The_Office_Bot()
+
+bot.run()
 
 
 
