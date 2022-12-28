@@ -27,7 +27,6 @@ class The_Office_Bot:
 
     # format Reddit comment to send to API
     def format_comment(self, comment):
-
         # remove the word michael-bot
         comment = comment.split()
         filtered_comment = [word for word in comment if 'michael-bot' not in word]
@@ -44,30 +43,30 @@ class The_Office_Bot:
 
     def run(self):
         for comment in self.subreddit.stream.comments():
-            if not comment.saved and "michael-bot" in comment.body:
-                commentBody = self.format_comment(comment.body)
-
-                response = requests.get("https://theofficescript.com/characters/michael/ask/" + commentBody)
-                response = response.json()
-
-                line = response['response']
-                season = str(response['season'])
-                episode = str(response['episode'])
-
-                botResponse = line + "\n\nseason " + season + " episode: " + episode
-
-#               comment.reply(botResponse)
-#               comment.save()
-
+            if "michael-bot" in comment.body:
                 self.c.execute('SELECT * FROM comments WHERE id=?', (comment.id,))
 
-                # check if bot already replied to comment
+                # reply if bot hasnt already replied
                 if self.c.fetchone() is None:
-                    print('already replied to comment')
-                    print(commentBody)
+                    commentBody = self.format_comment(comment.body)
+
+                    response = requests.get("https://theofficescript.com/characters/michael/ask/" + commentBody)
+                    response = response.json()
+
+                    line = response['response']
+                    season = str(response['season'])
+                    episode = str(response['episode'])
+                    botResponse = line + "\n\nseason " + season + " episode: " + episode
+                    comment.reply(botResponse)
+                    print('replied to ' + comment.body + ' with response ' + botResponse)
+
                     self.c.execute('INSERT INTO comments VALUES (?)', (comment.id,))
                     self.conn.commit()
-
+                # else:
+                #     print('already replied')
+                #     print(comment.body)
+                #     print('id ' + comment.id)
+                #     print()
 
 
 bot = The_Office_Bot()
