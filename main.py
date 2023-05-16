@@ -94,7 +94,7 @@ class The_Office_Bot:
                         conn.commit()
 
             except praw.exceptions.APIException as e:
-                if e.attributes.get("error_type") == "RATELIMIT":
+                if "RATELIMIT" in str(e):
                     delay = re.search("(\d+) minutes?", e.message)
                     if delay:
                         delay_seconds = float(int(delay.group(1)) * 60)
