@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import praw
 import os, requests, sqlite3
 from utils import format_comment
+import re, time
 
 
 class The_Office_Bot:
@@ -91,6 +92,7 @@ class The_Office_Bot:
                         c = conn.cursor()
                         c.execute("INSERT INTO comments VALUES (?)", (comment.id,))
                         conn.commit()
+
             except praw.exceptions.APIException as e:
                 if e.error_type == "RATELIMIT":
                     delay = re.search("(\d+) minutes?", e.message)
