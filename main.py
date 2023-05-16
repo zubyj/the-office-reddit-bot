@@ -92,25 +92,24 @@ class The_Office_Bot:
                         c = conn.cursor()
                         c.execute("INSERT INTO comments VALUES (?)", (comment.id,))
                         conn.commit()
-
-            except praw.exceptions.APIException as e:
-                error_message = str(e)
-                if "RATELIMIT" in error_message:
-                    delay = re.search("(\d+) minutes?", error_message)
-                    if delay:
-                        delay_seconds = float(int(delay.group(1)) * 60)
-                        print(f"Rate limit hit. Sleeping for {delay_seconds} seconds.")
-                        time.sleep(delay_seconds)
-                        continue
-                    else:
-                        delay = re.search("(\d+) seconds?", error_message)
-                        if delay:
-                            delay_seconds = float(delay.group(1))
-                            print(
-                                f"Rate limit hit. Sleeping for {delay_seconds} seconds."
-                            )
-                            time.sleep(delay_seconds)
-                            continue
+            # except praw.exceptions.APIException as e:
+            #     error_message = str(e)
+            #     if "RATELIMIT" in error_message:
+            #         delay = re.search("(\d+) minutes?", error_message)
+            #         if delay:
+            #             delay_seconds = float(int(delay.group(1)) * 60)
+            #             print(f"Rate limit hit. Sleeping for {delay_seconds} seconds.")
+            #             time.sleep(delay_seconds)
+            #             continue
+            #         else:
+            #             delay = re.search("(\d+) seconds?", error_message)
+            #             if delay:
+            #                 delay_seconds = float(delay.group(1))
+            #                 print(
+            #                     f"Rate limit hit. Sleeping for {delay_seconds} seconds."
+            #                 )
+            #                 time.sleep(delay_seconds)
+            #                 continue
             except Exception as e:
                 print(f"An error occurred: {e}")
                 continue
