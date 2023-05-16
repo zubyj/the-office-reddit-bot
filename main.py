@@ -1,12 +1,3 @@
-#
-"""
-
-The Office Reddit Response Bots
-Created by Zuby
-
-"""
-
-
 from dotenv import load_dotenv
 import praw
 import os, requests, sqlite3
@@ -19,21 +10,15 @@ class The_Office_Bot:
 
         # Authenticate account with Reddit API
         self.reddit = praw.Reddit(
-            client_id=os.getenv("ID"),
-            client_secret=os.getenv("SECRET"),
-            password=os.getenv("PASSWORD"),
-            user_agent=os.getenv("USER_AGENT"),
-            username=os.getenv("USERNAME"),
+            client_id=os.getenv("REDDIT_CLIENT_ID"),
+            client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+            password=os.getenv("REDDIT_PASSWORD"),
+            user_agent=os.getenv("REDDIT_USER_AGENT"),
+            username=os.getenv("REDDIT_USERNAME"),
         )
         self.subreddit = self.reddit.subreddit("BotsPlayHere")
 
-        # Connect to the database
-        self.conn = sqlite3.connect("replied_comments.db")
-        self.c = self.conn.cursor()
-        self.c.execute("""CREATE TABLE IF NOT EXISTS comments (id text)""")
-
         # Available characters that can be asked questions in the API
-        # https://www.theofficescript.com/#ask_question_character
         self.bots = ["michael-bot", "dwight-bot", "jim-bot", "pam-bot", "andy-bot"]
         self.character = "michael"  # The character referenced by the reddit comment
         self.names = {
@@ -44,7 +29,7 @@ class The_Office_Bot:
             "andy": "Andy Bernard",
         }
 
-    # Checks if our bots mentioned in reddit comment
+    # Checks if we should respond to comment
     def is_valid(self, comment):
         if comment.author == "the-office-bot":
             return False
@@ -57,47 +42,72 @@ class The_Office_Bot:
         if not valid:
             return False
 
-        # Ensures we havent already responded to the comment
-        self.c.execute("SELECT * FROM comments WHERE id=?", (comment.id,))
-        if self.c.fetchone() is not None:
-            valid = False
+        # Checks if we haven't already responded to the comment
+        with sqlite3.connect("replied_comments.db") as conn:
+            c = conn.cursor()
+            c.execute("""CREATE TABLE IF NOT EXISTS comments (id text)""")
+            c.execute("SELECT * FROM comments WHERE id=?", (comment.id,))
+            if c.fetchone() is not None:
+                valid = False
         return valid
 
     def run(self):
+        print("Bot is running on the subreddit " + self.subreddit.display_name)
         for comment in self.subreddit.stream.comments():
-            if self.is_valid(comment):
-                commentBody = format_comment(self.character, comment.body)
+            try:
+                if self.is_valid(comment):
+                    commentBody = format_comment(self.character, comment.body)
 
-                # Make API request with given character and Reddit comment
-                response = requests.get(
-                    "https://theofficescript.com/characters/"
-                    + self.character
-                    + "/ask/"
-                    + commentBody
-                )
-                response = response.json()
+                    # Make API request with given character and Reddit comment
+                    response = requests.get(
+                        "https://theofficescript.com/characters/"
+                        + self.character
+                        + "/ask/"
+                        + commentBody
+                    )
+                    response.raise_for_status()
+                    response = response.json()
 
-                # Format JSON response to respond to user
-                line = response["response"]
-                season = str(response["season"])
-                episode = str(response["episode"])
-                botResponse = (
-                    line
-                    + "\n\n"
-                    + "-"
-                    + self.names[self.character]
-                    + "\n\nSeason "
-                    + season
-                    + " Episode "
-                    + episode
-                )
+                    # Format JSON response to respond to user
+                    line = response["response"]
+                    season = str(response["season"])
+                    episode = str(response["episode"])
+                    botResponse = (
+                        line
+                        + "\n\n"
+                        + "-"
+                        + self.names[self.character]
+                        + "\n\nSeason "
+                        + season
+                        + " Episode "
+                        + episode
+                    )
 
-                comment.reply(botResponse)
-                print("comment : " + commentBody + ", response : " + botResponse)
+                    comment.reply(botResponse)
+                    print("comment : " + commentBody + ", response : " + botResponse)
 
-                # Store comment id in database (avoids replying more than once)
-                self.c.execute("INSERT INTO comments VALUES (?)", (comment.id,))
-                self.conn.commit()
+                    # Store comment id in database (avoids replying more than once)
+                    with sqlite3.connect("replied_comments.db") as conn:
+                        c = conn.cursor()
+                        c.execute("INSERT INTO comments VALUES (?)", (comment.id,))
+                        conn.commit()
+            except praw.exceptions.APIException as e:
+                if e.error_type == "RATELIMIT":
+                    delay = re.search("(\d+) minutes?", e.message)
+                    if delay:
+                        delay_seconds = float(int(delay.group(1)) * 60)
+                        print(f"Rate limit hit. Sleeping for {delay_seconds} seconds.")
+                        time.sleep(delay_seconds)
+                        continue
+                    else:
+                        delay = re.search("(\d+) seconds?", e.message)
+                        delay_seconds = float(delay.group(1))
+                        print(f"Rate limit hit. Sleeping for {delay_seconds} seconds.")
+                        time.sleep(delay_seconds)
+                        continue
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                continue
 
 
 if __name__ == "__main__":
