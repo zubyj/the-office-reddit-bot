@@ -94,19 +94,23 @@ class The_Office_Bot:
                         conn.commit()
 
             except praw.exceptions.APIException as e:
-                if "RATELIMIT" in str(e):
-                    delay = re.search("(\d+) minutes?", e.message)
+                error_message = str(e)
+                if "RATELIMIT" in error_message:
+                    delay = re.search("(\d+) minutes?", error_message)
                     if delay:
                         delay_seconds = float(int(delay.group(1)) * 60)
                         print(f"Rate limit hit. Sleeping for {delay_seconds} seconds.")
                         time.sleep(delay_seconds)
                         continue
                     else:
-                        delay = re.search("(\d+) seconds?", e.message)
-                        delay_seconds = float(delay.group(1))
-                        print(f"Rate limit hit. Sleeping for {delay_seconds} seconds.")
-                        time.sleep(delay_seconds)
-                        continue
+                        delay = re.search("(\d+) seconds?", error_message)
+                        if delay:
+                            delay_seconds = float(delay.group(1))
+                            print(
+                                f"Rate limit hit. Sleeping for {delay_seconds} seconds."
+                            )
+                            time.sleep(delay_seconds)
+                            continue
             except Exception as e:
                 print(f"An error occurred: {e}")
                 continue
