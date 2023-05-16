@@ -16,7 +16,7 @@ class The_Office_Bot:
             user_agent=os.getenv("REDDIT_USER_AGENT"),
             username=os.getenv("REDDIT_USERNAME"),
         )
-        self.subreddit = self.reddit.subreddit("BotsPlayHere")
+        self.subreddit = self.reddit.subreddit("DunderMifflin")
 
         # Available characters that can be asked questions in the API
         self.bots = ["michael-bot", "dwight-bot", "jim-bot", "pam-bot", "andy-bot"]
